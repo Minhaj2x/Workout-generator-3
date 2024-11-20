@@ -37,6 +37,7 @@
         h1 {
             color: #000000; /* Black color for headings */
             margin-top: 40px; /* Increased margin for spacing from the logo */
+            text-align: center; /* Center the heading */
         }
 
         h2 {
@@ -44,8 +45,7 @@
         }
 
         /* Form Styles */
-        input[type="text"],
-        select {
+        .input-field select {
             border: 1px solid #000000; /* Border color */
         }
 
@@ -107,12 +107,13 @@
         </div>
     </nav>
     <div class="container">
-        <h1 class="center-align">Generate Your Workout</h1>
-        
+        <!-- Add margin top to avoid overlap -->
+        <h1>Generate Your Workout</h1>
+
         <!-- User Input Form -->
         <form id="workout-form">
             <div class="input-field">
-                <select id="fitness-level">
+                <select id="fitness-level" required>
                     <option value="" disabled selected>Choose your fitness level</option>
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -121,7 +122,7 @@
                 <label>Fitness Level</label>
             </div>
             <div class="input-field">
-                <select id="goal">
+                <select id="goal" required>
                     <option value="" disabled selected>Choose your goal</option>
                     <option value="weight-loss">Weight Loss</option>
                     <option value="muscle-gain">Muscle Gain</option>
@@ -180,7 +181,31 @@
             <p>Stay consistent, listen to your body, and make sure to hydrate. Remember, every small step counts towards your fitness journey!</p>
         </div>
     </div>
-    <script src="script.js"></script> <!-- Link to your JavaScript -->
+
+    <!-- Scripts -->
+    <script src="script.js"></script> <!-- Your main JavaScript file -->
+    <script type="module" src="firebase.js"></script> <!-- Firebase functionality -->
+    <script type="module" src="indexeddb.js"></script> <!-- IndexedDB functionality -->
+    <script type="module" src="sync.js"></script> <!-- Synchronization logic -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script>
+        // Register the service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+            .then((registration) => {
+                console.log('Service Worker registered with scope: ', registration.scope);
+            })
+            .catch((error) => {
+                console.log('Service Worker registration failed: ', error);
+            });
+        }
+
+        // Initialize Materialize select dropdown
+        document.addEventListener('DOMContentLoaded', function () {
+            var elems = document.querySelectorAll('select');
+            var instances = M.FormSelect.init(elems);
+        });
+    </script>
 </body>
 </html>

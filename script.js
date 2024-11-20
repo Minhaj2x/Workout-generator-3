@@ -1,3 +1,4 @@
+// Define workouts object (already provided)
 const workouts = {
     beginner: {
         'weight-loss': ['15 min jog', '10 push-ups', '15 sit-ups'],
@@ -22,11 +23,88 @@ const workouts = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-    const elems = document.querySelectorAll('select');
-    const instances = M.FormSelect.init(elems);
+// Initialize Firebase (ensure you have set up Firebase in your project)
+const firebaseConfig = {
+    apiKey: "your-api-key",
+    authDomain: "your-auth-domain",
+    databaseURL: "your-database-url",
+    projectId: "your-project-id",
+    storageBucket: "your-storage-bucket",
+    messagingSenderId: "your-sender-id",
+    appId: "your-app-id"
+};
+firebase.initializeApp(firebaseConfig);
+
+// Access Firebase Database
+const db = firebase.database();
+
+// Function to sync data with Firebase when online
+function syncDataWithFirebase() {
+    const workoutData = JSON.parse(localStorage.getItem('workoutData'));
+    if (workoutData) {
+        db.ref('workouts').set(workoutData, function(error) {
+            if (error) {
+                console.log('Data could not be saved.' + error);
+            } else {
+                console.log('Data saved successfully.');
+            }
+        });
+    }
+}
+
+// Detect online/offline status and sync data when going online
+window.addEventListener('online', () => {
+    console.log('Back online!');
+    syncDataWithFirebase(); // Sync data when going online
 });
 
+window.addEventListener('offline', () => {
+    console.log('You are offline!');
+});
+
+// Initialize IndexedDB for offline storage (simple example)
+function openIndexedDB() {
+    const request = indexedDB.open('workoutDB', 1);
+
+    request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        const objectStore = db.createObjectStore('workouts', { keyPath: 'id', autoIncrement: true });
+    };
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        // Now you can use db to store workouts in IndexedDB
+        console.log('IndexedDB opened successfully.');
+    };
+
+    request.onerror = function(event) {
+        console.log('Error opening IndexedDB:', event.target.error);
+    };
+}
+
+openIndexedDB();
+
+// Save workout data in IndexedDB when offline
+function saveWorkoutToIndexedDB(workoutData) {
+    const request = indexedDB.open('workoutDB', 1);
+    
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('workouts', 'readwrite');
+        const objectStore = transaction.objectStore('workouts');
+        objectStore.put({ id: 1, workouts: workoutData });
+
+        transaction.oncomplete = function() {
+            console.log('Workout data saved to IndexedDB.');
+        };
+    };
+
+    request.onerror = function(event) {
+        console.log('Error saving workout data to IndexedDB:', event.target.error);
+    };
+}
+
+// Add functionality for form submission
 document.getElementById('workout-form').addEventListener('submit', function(event) {
     event.preventDefault();
 
@@ -50,9 +128,23 @@ document.getElementById('workout-form').addEventListener('submit', function(even
         // Insert the workout list into the output div
         document.getElementById('workout-output').innerHTML = output;
 
+        // Save to IndexedDB for offline storage
+        if (!navigator.onLine) {
+            saveWorkoutToIndexedDB(workoutList);
+        } else {
+            // Save data to localStorage (or Firebase) when online
+            localStorage.setItem('workoutData', JSON.stringify(workoutList));
+        }
+
         // Add fade-in effect
         document.getElementById('workout-output').classList.add('fade-in');
     } else {
         alert('Please select both your fitness level and goal.');
     }
+});
+
+// Initialize Materialize components
+document.addEventListener('DOMContentLoaded', function() {
+    const elems = document.querySelectorAll('select');
+    const instances = M.FormSelect.init(elems);
 });
