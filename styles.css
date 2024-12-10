@@ -1,34 +1,81 @@
 /* General Body Styles */
 body {
     font-family: 'Roboto', sans-serif;
-    background-color: #add8e6; /* Baby blue background */
-    color: #333333; /* Darker gray text for better readability */
+    background-color: #f0f8ff;
+    color: #333;
     margin: 0;
     padding: 0;
 }
 
+/* Main container */
+.container {
+    margin-top: 30px;
+    text-align: center;
+}
+
+/* Headings */
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Form Styles */
+.input-field {
+    margin: 10px 0;
+}
+
+input, select {
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Move the 'Fitness Goal' dropdown down */
+.input-field:nth-child(2) {
+    margin-top: 30px; /* Adjust this value to push it further down */
+}
+
+button {
+    background-color: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+button:hover {
+    background-color: #555;
+}
+
 /* Workout Output Styles */
-#workout-output {
+.workout-output {
     margin-top: 20px;
     padding: 15px;
-    background-color: #ffffff; /* White background for contrast */
-    color: #333333; /* Dark text color */
+    background-color: #fff;
+    color: #333;
     border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    font-size: 1.1em; /* Slightly larger text for readability */
-    transition: opacity 0.3s ease-in-out; /* Smooth fade-in effect */
-    opacity: 0; /* Start hidden */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: none; /* Initially hidden */
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
 }
 
-/* Fade-in Animation */
-.fade-in {
-    opacity: 1 !important; /* Make visible when fade-in class is added */
+.workout-output.visible {
+    display: block;
+    opacity: 1;
 }
 
-/* Button Style */
-.btn {
-    background-color: #000000;
-    color: #ffffff;
-    border-radius: 4px;
+/* List Styles */
+ul {
+    list-style-type: none;
+    padding-left: 0;
 }
 
+ul li {
+    margin: 10px 0;
+    font-size: 1.2rem;
+}

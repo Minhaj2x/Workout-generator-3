@@ -206,6 +206,49 @@
             var elems = document.querySelectorAll('select');
             var instances = M.FormSelect.init(elems);
         });
+
+        // Generate Workout Functionality
+        document.getElementById('workout-form').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent form submission
+
+            // Get user selections
+            var fitnessLevel = document.getElementById('fitness-level').value;
+            var goal = document.getElementById('goal').value;
+
+            // Generate workout message
+            var workoutMessage = `Your workout for ${fitnessLevel} level and goal of ${goal} is:`;
+
+            // Add specific workouts based on selection
+            var workoutPlan = '';
+
+            if (fitnessLevel && goal) {
+                // Example workout plans
+                if (fitnessLevel === 'beginner') {
+                    workoutPlan = 'Beginner Strength Training: Push-ups, Squats, Lunges';
+                } else if (fitnessLevel === 'intermediate') {
+                    workoutPlan = 'Intermediate Strength Training: Deadlifts, Bench Press, Pull-ups';
+                } else if (fitnessLevel === 'advanced') {
+                    workoutPlan = 'Advanced Strength Training: Clean and Press, Snatch, Squat Jumps';
+                }
+
+                if (goal === 'weight-loss') {
+                    workoutPlan += ' | Weight Loss Focus: Cardio Intervals, HIIT, Running';
+                } else if (goal === 'muscle-gain') {
+                    workoutPlan += ' | Muscle Gain Focus: Heavy Lifting, Compound Movements';
+                } else if (goal === 'endurance') {
+                    workoutPlan += ' | Endurance Focus: Long-distance Running, Cycling';
+                } else if (goal === 'flexibility') {
+                    workoutPlan += ' | Flexibility Focus: Yoga, Pilates, Static Stretching';
+                } else if (goal === 'overall-fitness') {
+                    workoutPlan += ' | Overall Fitness: Circuit Training, Bodyweight Exercises';
+                }
+            } else {
+                workoutPlan = 'Please select both your fitness level and goal.';
+            }
+
+            // Display the workout plan
+            document.getElementById('workout-output').innerHTML = `<h3>${workoutMessage}</h3><p>${workoutPlan}</p>`;
+        });
     </script>
 </body>
 </html>

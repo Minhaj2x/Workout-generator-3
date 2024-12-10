@@ -1,150 +1,217 @@
-// Define workouts object (already provided)
-const workouts = {
-    beginner: {
-        'weight-loss': ['15 min jog', '10 push-ups', '15 sit-ups'],
-        'muscle-gain': ['3 sets of 8 squats', '3 sets of 8 bench press'],
-        'endurance': ['20 min cycling', '15 min jump rope'],
-        'flexibility': ['30 min yoga', '15 min stretching'],
-        'overall-fitness': ['20 min HIIT', '10 min core workout']
-    },
-    intermediate: {
-        'weight-loss': ['20 min jog', '15 push-ups', '20 sit-ups'],
-        'muscle-gain': ['4 sets of 10 squats', '4 sets of 10 bench press'],
-        'endurance': ['30 min cycling', '20 min jump rope'],
-        'flexibility': ['40 min yoga', '20 min stretching'],
-        'overall-fitness': ['30 min HIIT', '20 min core workout']
-    },
-    advanced: {
-        'weight-loss': ['30 min jog', '20 push-ups', '30 sit-ups'],
-        'muscle-gain': ['5 sets of 8 squats', '5 sets of 8 bench press'],
-        'endurance': ['40 min cycling', '30 min jump rope'],
-        'flexibility': ['50 min yoga', '30 min stretching'],
-        'overall-fitness': ['40 min HIIT', '30 min core workout']
-    }
-};
+// Import Firebase modules
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore"; 
 
-// Initialize Firebase (ensure you have set up Firebase in your project)
+// Firebase configuration (replace this with your actual Firebase configuration)
 const firebaseConfig = {
-    apiKey: "your-api-key",
-    authDomain: "your-auth-domain",
-    databaseURL: "your-database-url",
-    projectId: "your-project-id",
-    storageBucket: "your-storage-bucket",
-    messagingSenderId: "your-sender-id",
-    appId: "your-app-id"
+  apiKey: "AIzaSyCp2HL00e9b-VrTZ2Knc0kcR3HBG45pqFk",
+  authDomain: "workout-generator-efb98.firebaseapp.com",
+  projectId: "workout-generator-efb98",
+  storageBucket: "workout-generator-efb98.firebasestorage.app",
+  messagingSenderId: "498104719291",
+  appId: "1:498104719291:web:fc32ea802aa3e1a627169e",
+  measurementId: "G-VXE3EF916T"
 };
-firebase.initializeApp(firebaseConfig);
 
-// Access Firebase Database
-const db = firebase.database();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// Function to sync data with Firebase when online
-function syncDataWithFirebase() {
-    const workoutData = JSON.parse(localStorage.getItem('workoutData'));
-    if (workoutData) {
-        db.ref('workouts').set(workoutData, function(error) {
-            if (error) {
-                console.log('Data could not be saved.' + error);
-            } else {
-                console.log('Data saved successfully.');
-            }
-        });
+// Function to test Firestore access
+async function testFirestore() {
+  try {
+    const workoutsRef = collection(db, "workouts");
+    const querySnapshot = await getDocs(workoutsRef);
+    if (querySnapshot.empty) {
+      console.log("No workouts found in Firestore.");
+    } else {
+      querySnapshot.forEach(doc => {
+        console.log(doc.id, " => ", doc.data());
+      });
     }
+  } catch (e) {
+    console.error("Error fetching workouts from Firestore: ", e);
+  }
 }
 
-// Detect online/offline status and sync data when going online
-window.addEventListener('online', () => {
-    console.log('Back online!');
-    syncDataWithFirebase(); // Sync data when going online
-});
+// Call the test function to verify Firestore is working
+testFirestore();
 
-window.addEventListener('offline', () => {
-    console.log('You are offline!');
-});
+// Open IndexedDB (called 'workouts-db' with version 1)
+let indexedDb;
+const request = indexedDB.open('workouts-db', 1);
 
-// Initialize IndexedDB for offline storage (simple example)
-function openIndexedDB() {
-    const request = indexedDB.open('workoutDB', 1);
+request.onupgradeneeded = function(event) {
+  indexedDb = event.target.result;
+  if (!indexedDb.objectStoreNames.contains('workouts')) {
+    const workoutStore = indexedDb.createObjectStore('workouts', { keyPath: 'id', autoIncrement: true });
+    workoutStore.createIndex('timestamp', 'timestamp', { unique: false });
+  }
+};
 
-    request.onupgradeneeded = function(event) {
-        const db = event.target.result;
-        const objectStore = db.createObjectStore('workouts', { keyPath: 'id', autoIncrement: true });
-    };
+request.onsuccess = function(event) {
+  indexedDb = event.target.result;
+};
 
-    request.onsuccess = function(event) {
-        const db = event.target.result;
-        // Now you can use db to store workouts in IndexedDB
-        console.log('IndexedDB opened successfully.');
-    };
+request.onerror = function(event) {
+  console.error("Error opening IndexedDB:", event);
+};
 
-    request.onerror = function(event) {
-        console.log('Error opening IndexedDB:', event.target.error);
-    };
+// Function to add workout data to IndexedDB
+function addWorkoutToIndexedDB(workoutData) {
+  const transaction = indexedDb.transaction(['workouts'], 'readwrite');
+  const store = transaction.objectStore('workouts');
+  const workout = {
+    level: workoutData.level,
+    goal: workoutData.goal,
+    workoutSuggestions: workoutData.workoutSuggestions,
+    timestamp: new Date()
+  };
+  store.add(workout);
 }
 
-openIndexedDB();
-
-// Save workout data in IndexedDB when offline
-function saveWorkoutToIndexedDB(workoutData) {
-    const request = indexedDB.open('workoutDB', 1);
-    
-    request.onsuccess = function(event) {
-        const db = event.target.result;
-        const transaction = db.transaction('workouts', 'readwrite');
-        const objectStore = transaction.objectStore('workouts');
-        objectStore.put({ id: 1, workouts: workoutData });
-
-        transaction.oncomplete = function() {
-            console.log('Workout data saved to IndexedDB.');
-        };
-    };
-
-    request.onerror = function(event) {
-        console.log('Error saving workout data to IndexedDB:', event.target.error);
-    };
+// Function to retrieve all workouts from IndexedDB
+function getWorkoutsFromIndexedDB(callback) {
+  const transaction = indexedDb.transaction(['workouts'], 'readonly');
+  const store = transaction.objectStore('workouts');
+  const request = store.getAll();
+  request.onsuccess = function(event) {
+    callback(event.target.result);
+  };
+  request.onerror = function(event) {
+    console.error("Error retrieving workouts from IndexedDB:", event);
+  };
 }
 
-// Add functionality for form submission
-document.getElementById('workout-form').addEventListener('submit', function(event) {
-    event.preventDefault();
+// Handle form submission
+document.getElementById('fitness-form').addEventListener('submit', async function(event) {
+    event.preventDefault(); // Prevent the form from refreshing the page
 
-    // Get selected values
-    const fitnessLevel = document.getElementById('fitness-level').value;
+    // Get values from the form
+    const level = document.getElementById('level').value;
     const goal = document.getElementById('goal').value;
 
-    // Debugging logs to check values
-    console.log("Fitness Level:", fitnessLevel);
-    console.log("Goal:", goal);
+    // Generate workout based on selected fitness level and goal
+    const workoutList = document.getElementById('workout-list');
+    workoutList.innerHTML = ''; // Clear previous suggestions
 
-    if (fitnessLevel && goal) {
-        // Retrieve the workout list based on selections
-        const workoutList = workouts[fitnessLevel][goal];
-        const output = `
-            <h3 class="fade-in">Your Workout:</h3>
-            <ul class="fade-in">
-                ${workoutList.map(workout => `<li>${workout}</li>`).join('')}
-            </ul>`;
+    let workoutSuggestions = [];
 
-        // Insert the workout list into the output div
-        document.getElementById('workout-output').innerHTML = output;
-
-        // Save to IndexedDB for offline storage
-        if (!navigator.onLine) {
-            saveWorkoutToIndexedDB(workoutList);
-        } else {
-            // Save data to localStorage (or Firebase) when online
-            localStorage.setItem('workoutData', JSON.stringify(workoutList));
+    if (level === 'beginner') {
+        if (goal === 'weight_loss') {
+            workoutSuggestions = [
+                '30-minute brisk walk',
+                'Bodyweight squats - 3 sets of 12',
+                'Push-ups - 3 sets of 8',
+                'Plank - 3 sets of 30 seconds'
+            ];
+        } else if (goal === 'muscle_gain') {
+            workoutSuggestions = [
+                'Bodyweight squats - 3 sets of 12',
+                'Push-ups - 3 sets of 10',
+                'Dumbbell rows - 3 sets of 10',
+                'Dumbbell curls - 3 sets of 12'
+            ];
+        } else if (goal === 'endurance') {
+            workoutSuggestions = [
+                'Brisk walking - 45 minutes',
+                'Jogging intervals - 20 minutes',
+                'Jump rope - 3 sets of 2 minutes'
+            ];
         }
+    } else if (level === 'intermediate') {
+        if (goal === 'weight_loss') {
+            workoutSuggestions = [
+                '45-minute steady-state cardio (bike, treadmill, etc.)',
+                'Lunges - 4 sets of 12',
+                'Push-ups - 4 sets of 15',
+                'Mountain climbers - 4 sets of 20'
+            ];
+        } else if (goal === 'muscle_gain') {
+            workoutSuggestions = [
+                'Barbell squats - 4 sets of 8',
+                'Bench press - 4 sets of 10',
+                'Pull-ups - 3 sets of 8',
+                'Deadlifts - 4 sets of 8'
+            ];
+        } else if (goal === 'endurance') {
+            workoutSuggestions = [
+                'Jogging - 30 minutes',
+                'High-intensity interval training (HIIT) - 20 minutes',
+                'Stair climbing - 4 sets of 3 minutes'
+            ];
+        }
+    } else if (level === 'advanced') {
+        if (goal === 'weight_loss') {
+            workoutSuggestions = [
+                'HIIT - 30 minutes',
+                'Burpees - 5 sets of 20',
+                'Kettlebell swings - 4 sets of 15',
+                'Rowing machine - 20 minutes'
+            ];
+        } else if (goal === 'muscle_gain') {
+            workoutSuggestions = [
+                'Deadlifts - 5 sets of 5',
+                'Squats - 5 sets of 5',
+                'Overhead press - 4 sets of 8',
+                'Bent-over rows - 4 sets of 8'
+            ];
+        } else if (goal === 'endurance') {
+            workoutSuggestions = [
+                'Marathon training (long runs) - 1 hour',
+                'Interval sprints - 10 sets of 1-minute sprints',
+                'Swimming - 45 minutes'
+            ];
+        }
+    }
 
-        // Add fade-in effect
-        document.getElementById('workout-output').classList.add('fade-in');
+    // Display the workout suggestions
+    workoutSuggestions.forEach(function(workout) {
+        const listItem = document.createElement('li');
+        listItem.textContent = workout;
+        workoutList.appendChild(listItem);
+    });
+
+    // Show the workout output
+    const workoutOutput = document.getElementById('workout-output');
+    workoutOutput.classList.add('visible');
+
+    // Check if the app is offline
+    if (navigator.onLine) {
+        // Save to Firebase if online
+        try {
+            await addDoc(collection(db, "workouts"), {
+                level: level,
+                goal: goal,
+                workoutSuggestions: workoutSuggestions,
+                timestamp: new Date()
+            });
+            console.log("Workout saved to Firestore!");
+        } catch (e) {
+            console.error("Error adding document: ", e);
+        }
     } else {
-        alert('Please select both your fitness level and goal.');
+        // Save to IndexedDB if offline
+        const workoutData = {
+            level: level,
+            goal: goal,
+            workoutSuggestions: workoutSuggestions
+        };
+        addWorkoutToIndexedDB(workoutData);
+        console.log("Workout saved to IndexedDB!");
     }
 });
 
-// Initialize Materialize components
-document.addEventListener('DOMContentLoaded', function() {
-    const elems = document.querySelectorAll('select');
-    const instances = M.FormSelect.init(elems);
+// Sync offline workouts with Firebase when online
+window.addEventListener('online', function() {
+    getWorkoutsFromIndexedDB(function(workouts) {
+        workouts.forEach(async function(workout) {
+            try {
+                await addDoc(collection(db, "workouts"), workout);
+                console.log("Synced workout to Firebase:", workout);
+            } catch (e) {
+                console.error("Error syncing workout to Firebase:", e);
+            }
+        });
+    });
 });
